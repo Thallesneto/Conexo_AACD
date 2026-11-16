@@ -1,0 +1,78 @@
+
+name: CoNexo - Verificação de Código
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verificar-estrutura:
+    name: Verificar sintaxe do código
+    runs-on: ubuntu-latest
+
+    env:
+      BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
+
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          
+      - name: Verificar arquivos modificados
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [[ -n "$BASE_SHA" ]] && \
+             git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+
+            mapfile -d '' -t ARQUIVOS < <(
+              git diff --name-only -z \
+                --diff-filter=ACMRT \
+                "$BASE_SHA" "$GITHUB_SHA" \
+                -- frontend backend tests
+            )
+
+          else
+
+            mapfile -d '' -t ARQUIVOS < <(
+              git ls-files -z -- frontend backend tests
+            )
+
+          fi
+          TOTAL=0
+          for arquivo in "${ARQUIVOS[@]}"; do
+            [[ -f "$arquivo" ]] || continue
+
+            case "$arquivo" in
+              frontend/vendor/*)
+                continue
+                ;;
+
+              frontend/*.js|frontend/*.mjs|backend/*.js|backend/*.mjs|tests/*.js|tests/*.mjs)
+                echo "Verificando JavaScript: $arquivo"
+                node --check "$arquivo"
+                TOTAL=$((TOTAL + 1))
+                ;;
+
+              tests/*.py|backend/*.py)
+                echo "Verificando Python: $arquivo"
+                python3 -m py_compile "$arquivo"
+                TOTAL=$((TOTAL + 1))
+                ;;
+
+            esac
+          done
+
+          echo "Verificação concluída."
+          echo "Arquivos analisados: $TOTAL"
