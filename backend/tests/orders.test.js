@@ -272,3 +272,61 @@ test('código único por unidade, persistência dos requisitos e isolamento por 
     409
   );
 });
+
+test('duas conexões concorrentes criam no máximo um pedido ativo', async () => {
+  const s = await create();
+  const attempts = await Promise.all([
+    aacd.send('POST', `/api/solicitacoes/${s.id}/pedidos`, selection()),
+    colleague.send('POST', `/api/solicitacoes/${s.id}/pedidos`, selection())
+  ]);
+  assert.deepEqual(attempts.map((x) => x.status).sort(), [201, 409]);
+  const [[count]] = await pool.execute(
+    'SELECT COUNT(*) AS n FROM pedido WHERE id_solicitacao=?',
+    [s.id]
+  );
+  assert.equal(Number(count.n), 1);
+});
+test('recusa preserva tentativa e permite reencaminhar; aceite e finalização encerram com auditoria', async () => {
+  const s = await create();
+  const first = await connect(s);
+  assert.equal(
+    (await partner.send('POST', `/api/pedidos/${first}/acoes/recusar`, {}))
+      .status,
+    200
+  );
+  assert.equal(
+    (await partner.send('POST', `/api/pedidos/${first}/acoes/aceitar`, {}))
+      .status,
+    409
+  );
+  const second = await connect(s, selection(otherPrinter, users.stranger));
+  assert.equal(
+    (await stranger.send('POST', `/api/pedidos/${second}/acoes/finalizar`, {}))
+      .status,
+    409
+  );
+  assert.equal(
+    (await stranger.send('POST', `/api/pedidos/${second}/acoes/aceitar`, {}))
+      .status,
+    200
+  );
+  assert.equal(
+    (await stranger.send('POST', `/api/pedidos/${second}/acoes/finalizar`, {}))
+      .status,
+    200
+  );
+  assert.equal(
+    (await aacd.send('POST', `/api/solicitacoes/${s.id}/pedidos`, selection()))
+      .status,
+    409
+  );
+  const events = await aacd.send('GET', `/api/pedidos/${second}/eventos`);
+  assert.deepEqual(
+    events.value.items.map((x) => x.acao),
+    ['criado', 'aceito', 'finalizado']
+  );
+  const old = await partner.send('GET', `/api/pedidos/${first}`);
+  assert.equal(old.value.status, 'recusado');
+  const request = await aacd.send('GET', `/api/solicitacoes/${s.id}`);
+  assert.equal(request.value.motivo_encerramento, 'finalizado');
+});
