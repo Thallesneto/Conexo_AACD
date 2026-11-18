@@ -330,3 +330,62 @@ test('recusa preserva tentativa e permite reencaminhar; aceite e finalização e
   const request = await aacd.send('GET', `/api/solicitacoes/${s.id}`);
   assert.equal(request.value.motivo_encerramento, 'finalizado');
 });
+
+test('revalida capacidade e soft delete ao conectar, sem apagar solicitação após falha', async () => {
+  const p = await printers.save(users.partner, printerBody),
+    s = await create();
+  await printers.save(
+    users.partner,
+    { ...printerBody, capacidade: { x: 50, y: 50, z: 50 } },
+    p._id
+  );
+  const result = await aacd.send(
+    'POST',
+    `/api/solicitacoes/${s.id}/pedidos`,
+    selection(p)
+  );
+  assert.equal(result.status, 409);
+  assert.equal(
+    (await aacd.send('GET', `/api/solicitacoes/${s.id}`)).status,
+    200
+  );
+  await printers.remove(users.partner, p._id);
+  assert.equal(
+    (await aacd.send('POST', `/api/solicitacoes/${s.id}/pedidos`, selection(p)))
+      .status,
+    404
+  );
+});
+
+test('fluxo de criação pela interface pode repetir após recusa sem duplicar solicitação', async () => {
+  const draft = body();
+  const r = await aacd.send('POST', '/api/pedidos', {
+    request: draft,
+    selection: selection()
+  });
+  assert.equal(r.status, 201, JSON.stringify(r.value));
+  assert.equal(
+    (
+      await aacd.send('POST', '/api/pedidos', {
+        request: draft,
+        selection: selection()
+      })
+    ).status,
+    409
+  );
+  assert.equal(
+    (await partner.send('POST', `/api/pedidos/${r.value.id}/acoes/recusar`, {}))
+      .status,
+    200
+  );
+  const again = await aacd.send('POST', '/api/pedidos', {
+    request: draft,
+    selection: selection(otherPrinter, users.stranger)
+  });
+  assert.equal(again.status, 201, JSON.stringify(again.value));
+  const [[count]] = await pool.execute(
+    'SELECT COUNT(*) AS n FROM solicitacao WHERE unidade=? AND codigo=?',
+    ['Mooca', draft.code]
+  );
+  assert.equal(Number(count.n), 1);
+});
