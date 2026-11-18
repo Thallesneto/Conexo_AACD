@@ -172,3 +172,103 @@ after(async () => {
   await mongo.close();
   await pool.end();
 });
+
+test('validação rejeita dimensões fracionárias, material, bico e URLs inválidos', () => {
+  for (const update of [
+    { volumes: { X: 0, Y: 1, Z: 1 } },
+    { volumes: { X: 1.5, Y: 1, Z: 1 } },
+    { materials: ['RESINA'] },
+    { nozzles: [0.001] },
+    { url: 'javascript:alert(1)' },
+    { url: 'https://user:pass@example.org' },
+    { notes: 'x'.repeat(4001) }
+  ])
+    assert.throws(() => validateRequest({ ...body(), ...update }));
+  assert.equal(
+    haversine(
+      { latitude: -23.55, longitude: -46.63 },
+      { latitude: -23.55, longitude: -46.63 }
+    ),
+    0
+  );
+});
+test('API exige sessão e homologação', async () => {
+  assert.equal((await new Client().send('GET', '/api/pedidos')).status, 401);
+  await pool.execute('UPDATE parceiro SET homologado=FALSE WHERE id=?', [
+    users.stranger.id
+  ]);
+  assert.equal((await stranger.send('GET', '/api/pedidos')).status, 403);
+  await pool.execute('UPDATE parceiro SET homologado=TRUE WHERE id=?', [
+    users.stranger.id
+  ]);
+});
+
+test('match usa capacidade sem rotação, homologação e opções de material; estoque apenas informa', async () => {
+  const s = await create();
+  const r = await aacd.send('GET', `/api/solicitacoes/${s.id}/recomendacoes`);
+  assert.equal(r.status, 200);
+  const own = r.value.items.filter((x) => x.printerId === printer._id);
+  assert.equal(own.length, 2);
+  assert.equal(own.find((x) => x.material === 'PLA').needsMaterial, false);
+  assert.equal(own.find((x) => x.material === 'PETG').needsMaterial, true);
+  assert.ok(own.every((x) => x.distanceKm > 0));
+  await pool.execute('UPDATE parceiro SET homologado=FALSE WHERE id=?', [
+    users.stranger.id
+  ]);
+  const filtered = await aacd.send(
+    'GET',
+    `/api/solicitacoes/${s.id}/recomendacoes`
+  );
+  assert.ok(
+    filtered.value.items.every((x) => x.partnerId !== users.stranger.id)
+  );
+  await pool.execute('UPDATE parceiro SET homologado=TRUE WHERE id=?', [
+    users.stranger.id
+  ]);
+  const large = await create({ ...body(), volumes: { X: 201, Y: 50, Z: 50 } });
+  assert.deepEqual(
+    (await aacd.send('GET', `/api/solicitacoes/${large.id}/recomendacoes`))
+      .value.items,
+    []
+  );
+});
+
+test('código único por unidade, persistência dos requisitos e isolamento por unidade/proprietário', async () => {
+  const draft = body(),
+    s = await create(draft),
+    id = await connect(s);
+  assert.equal(
+    (await aacd.send('POST', '/api/solicitacoes', draft)).status,
+    409
+  );
+  assert.equal(
+    (await other.send('POST', '/api/solicitacoes', draft)).status,
+    201
+  );
+  assert.equal(
+    (await other.send('GET', `/api/solicitacoes/${s.id}`)).status,
+    404
+  );
+  assert.equal((await other.send('GET', `/api/pedidos/${id}`)).status, 404);
+  assert.equal((await stranger.send('GET', `/api/pedidos/${id}`)).status, 404);
+  assert.equal((await colleague.send('GET', `/api/pedidos/${id}`)).status, 200);
+  const saved = await partner.send('GET', `/api/pedidos/${id}`);
+  assert.equal(saved.value.codigo, draft.code);
+  assert.equal(saved.value.link, draft.url);
+  assert.equal(saved.value.observacoes, draft.notes);
+  assert.equal(
+    (await partner.send('POST', `/api/pedidos/${id}/acoes/cancelar`, {}))
+      .status,
+    403
+  );
+  assert.equal(
+    (await colleague.send('POST', `/api/pedidos/${id}/acoes/cancelar`, {}))
+      .status,
+    200
+  );
+  assert.equal(
+    (await aacd.send('POST', `/api/solicitacoes/${s.id}/pedidos`, selection()))
+      .status,
+    409
+  );
+});
