@@ -389,3 +389,56 @@ test('fluxo de criação pela interface pode repetir após recusa sem duplicar s
   );
   assert.equal(Number(count.n), 1);
 });
+
+test('reutilização ignora a ordem das seleções e rejeita requisitos alterados', async () => {
+  const draft = { ...body(), nozzles: [0.2, 0.4] };
+  await create(draft);
+  for (const changed of [
+    { url: 'https://example.org/outro.stl' },
+    { notes: 'Novas instruções' },
+    { priority: 'Urgente' },
+    { volumes: { ...draft.volumes, X: 101 } },
+    { materials: ['PLA'] },
+    { nozzles: [0.4] }
+  ]) {
+    const response = await aacd.send('POST', '/api/pedidos', {
+      request: { ...draft, ...changed },
+      selection: selection()
+    });
+    assert.equal(response.status, 409);
+    assert.match(response.value.error.message, /outros requisitos/);
+  }
+  const response = await aacd.send('POST', '/api/pedidos', {
+    request: {
+      ...draft,
+      materials: [...draft.materials].reverse(),
+      nozzles: [...draft.nozzles].reverse()
+    },
+    selection: selection()
+  });
+  assert.equal(response.status, 201, JSON.stringify(response.value));
+  const [[count]] = await pool.execute(
+    'SELECT COUNT(*) AS n FROM solicitacao WHERE unidade=? AND codigo=?',
+    ['Mooca', draft.code]
+  );
+  assert.equal(Number(count.n), 1);
+});
+
+test('fila do parceiro prioriza urgente e combina peso com idade da solicitação', async () => {
+  const standard = await create(),
+    medium = await create({ ...body(), priority: 'Médio' }),
+    urgent = await create({ ...body(), priority: 'Urgente' });
+  await pool.execute(
+    'UPDATE solicitacao SET criada_em=DATE_SUB(UTC_TIMESTAMP(),INTERVAL 8 DAY) WHERE id=?',
+    [standard.id]
+  );
+  const standardId = await connect(standard),
+    mediumId = await connect(medium),
+    urgentId = await connect(urgent);
+  const r = await partner.send('GET', '/api/pedidos');
+  const ids = new Set([standardId, mediumId, urgentId]);
+  assert.deepEqual(
+    r.value.items.filter((x) => ids.has(x.id)).map((x) => x.id),
+    [urgentId, standardId, mediumId]
+  );
+});
