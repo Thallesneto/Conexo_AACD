@@ -773,6 +773,9 @@ footer p {
   margin-top: 16px;
   color: var(--action);
 }
+.feedback[role='alert'] {
+  color: #a22c2c;
+}
 .skip-link {
   position: absolute;
   left: 16px;

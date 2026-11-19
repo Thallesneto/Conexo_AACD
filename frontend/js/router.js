@@ -35,8 +35,8 @@ const titles = {
   'aacd-homologacao': 'Homologação de Parceiros',
   'aacd-pedido-1': 'Novo Pedido — Informações Gerais',
   'aacd-pedido-2': 'Novo Pedido — Especificações Técnicas',
-  'aacd-pedido-3': 'Novo Pedido — Upload do Link',
-  'aacd-conectar': 'Conectar Pedido aos Parceiros',
+  'aacd-pedido-3': 'Novo Pedido — Link do arquivo para impressão',
+  'aacd-conectar': 'Enviar pedido ao parceiro',
   'aacd-perfil': 'Editar a Conta AACD'
 };
 
