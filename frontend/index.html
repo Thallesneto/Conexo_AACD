@@ -1569,14 +1569,14 @@
               aria-expanded="true"
               aria-controls="pending-orders"
             >
-              <h2> <span class="dot orange"> </span>Pedidos Pendentes </h2>
+              <h2> <span class="dot orange"> </span>Pedidos aguardando aceite </h2>
               <span class="group-count waiting"
                 >Aguardando aceite <b id="pending-orders-count">0</b>
               </span>
               <img src="assets/partner-accordion.svg" alt="" />
             </button>
             <div id="pending-orders" class="collapse show order-list">
-              <p class="order-empty" hidden>Nenhum pedido pendente.</p>
+              <p class="order-empty" hidden>Nenhum pedido aguardando aceite.</p>
             </div>
           </section>
           <p id="orders-feedback" class="feedback" role="status"> </p>
@@ -2293,8 +2293,7 @@
               >Novo Pedido de Impressão 3D</h1
             >
             <p
-              >Cadastro da demanda clínica e especificações de manufatura
-              assistiva</p
+              >Informe os dados do pedido e os requisitos para impressão.</p
             >
           </div>
           <!-- Formulário da etapa atual de criação do pedido -->
@@ -2309,7 +2308,7 @@
               </div>
               <div class="field">
                 <label class="form-label" for="aacd-order-code"
-                  >Nome / Código do Pedido</label
+                  >Código do pedido</label
                 >
                 <div class="aacd-code-input">
                   <img src="assets/aacd-a7d5a.svg" alt="" />
@@ -2378,8 +2377,7 @@
               >Novo Pedido de Impressão 3D</h1
             >
             <p
-              >Cadastro da demanda clínica e especificações de manufatura
-              assistiva</p
+              >Informe os dados do pedido e os requisitos para impressão.</p
             >
           </div>
           <!-- Formulário da etapa atual de criação do pedido -->
@@ -2457,7 +2455,7 @@
                 <!-- Seleção de materiais aptos e homologados -->
                 <div class="choice-head">
                   <label>Materiais Aptos e Homologados</label>
-                  <span>Selecione todos os disponíveis</span>
+                  <span>Selecione os materiais aceitos para este pedido</span>
                 </div>
                 <div class="choices">
                   <label class="choice">
@@ -2477,10 +2475,10 @@
                     Filamentos Flexíveis (Poliuretano Termoplástico)</label
                   >
                 </div>
-                <!-- Seleção de bicos disponíveis para a impressora -->
+                <!-- Diâmetros de bico aceitos para este pedido -->
                 <div class="choice-head">
-                  <label>Bicos Disponíveis para a Impressora</label>
-                  <span>Selecione todos os disponíveis</span>
+                  <label>Diâmetro de bico necessário (mm)</label>
+                  <span>Selecione os diâmetros aceitos para este pedido</span>
                 </div>
                 <div class="choices">
                   <label class="choice">
@@ -2546,8 +2544,7 @@
               >Novo Pedido de Impressão 3D</h1
             >
             <p
-              >Cadastro da demanda clínica e especificações de manufatura
-              assistiva</p
+              >Informe os dados do pedido e os requisitos para impressão.</p
             >
           </div>
           <!-- Formulário da etapa atual de criação do pedido -->
@@ -2556,24 +2553,27 @@
               <div class="aacd-step-heading">
                 <span class="step">3</span>
                 <div>
-                  <h2>Upload do Link</h2>
+                  <h2>Link do arquivo para impressão</h2>
                 </div>
               </div>
-              <label class="visually-hidden" for="aacd-order-url"
-                >URL do arquivo</label
+              <label class="form-label" for="aacd-order-url"
+                >Link do arquivo de impressão 3D</label
               >
               <input
                 class="form-control"
                 id="aacd-order-url"
                 type="url"
                 name="url"
-                placeholder="https://conexo.com"
+                placeholder="https://exemplo.com/arquivo.stl"
+                aria-describedby="aacd-order-url-help"
                 required
               />
+              <p id="aacd-order-url-help" class="text-muted small">
+                O parceiro precisa ter permissão para acessar o arquivo.
+              </p>
               <div class="field">
                 <label class="form-label" for="aacd-order-notes"
-                  >Instruções e Observações Técnicas para o Maker /
-                  Laboratório</label
+                  >Instruções e observações técnicas para o parceiro</label
                 >
                 <textarea
                   id="aacd-order-notes"
@@ -2590,15 +2590,22 @@
                 <span>Opcional</span>
               </div>
               <p class="form-error" role="alert"></p>
+              <p
+                id="aacd-recommendations-feedback"
+                class="feedback"
+                role="status"
+                aria-atomic="true"
+              ></p>
             </div>
             <!-- Navegação entre as etapas de criação do pedido -->
             <div class="aacd-advance">
               <p>
-                <img src="assets/aacd-f0eb3.svg" alt="" />Após o envio, o pedido
-                será roteado para a fila de capacidade dos parceiros
-                homologados.
+                <img src="assets/aacd-f0eb3.svg" alt="" />Após o envio, o parceiro
+                selecionado poderá aceitar ou recusar o pedido.
               </p>
-              <button class="btn btn-conexo" type="submit">Avançar</button>
+              <button class="btn btn-conexo" type="submit"
+                >Escolher parceiro</button
+              >
             </div>
           </form>
         </div>
@@ -2620,7 +2627,7 @@
               >←</a
             >
             <h1 id="aacd-conectar-titulo" class="screen-heading" tabindex="-1"
-              >Conectar Pedido aos Parceiros</h1
+              >Enviar pedido ao parceiro</h1
             >
           </div>
           <p class="network-total cyan"></p>
@@ -2664,7 +2671,20 @@
           </h3>
           <!-- Parceiros compatíveis: recomendações preenchidas dinamicamente pelo JavaScript -->
           <div id="aacd-match-list"> </div>
-          <p class="feedback" id="aacd-connect-feedback" role="status"> </p>
+          <p
+            class="feedback"
+            id="aacd-connect-feedback"
+            role="status"
+            aria-atomic="true"
+          ></p>
+          <a
+            id="aacd-review-requirements"
+            class="btn btn-back"
+            href="#aacd-pedido-2"
+            data-section="aacd-pedido-2"
+            hidden
+            >Revisar requisitos do pedido</a
+          >
         </div>
       </section>
       <!-- FIM DA TELA: AACD — conexão do pedido com parceiros compatíveis (#aacd-conectar) -->
@@ -3059,13 +3079,13 @@
               type="button"
               class="order-refuse"
               data-order-action="refuse"
-              >Recusar</button
+              >Recusar pedido</button
             >
             <button
               type="button"
               class="order-primary"
               data-order-action="accept"
-              >Aceitar</button
+              >Aceitar pedido</button
             >
           </span>
         </div>
@@ -3278,7 +3298,7 @@
               >Ver Ficha Técnica</button
             >
             <button class="btn btn-conexo" type="button" data-connect-order=""
-              >Conectar e Enviar Pedido
+              ><span data-send-label>Enviar pedido ao parceiro</span>
               <img src="assets/aacd-87a82.svg" alt="" />
             </button>
           </div>

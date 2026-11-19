@@ -12,7 +12,11 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
   const openPanel = document.getElementById('aacd-open-requests')
   const openList = openPanel.querySelector('[data-open-requests]')
   const feedback = document.getElementById('aacd-connect-feedback')
+  const recommendationFeedback = document.getElementById('aacd-recommendations-feedback')
+  const reviewRequirements = document.getElementById('aacd-review-requirements')
   let matches = []
+  let recommendationRequest = null
+  let submission = null
   // Ignora uma resposta de recomendações se o formulário mudar durante a busca.
   let revision = 0
 
@@ -74,7 +78,7 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
   function validateOrderInformation() {
     const input = document.getElementById('aacd-order-code');
     input.setCustomValidity(
-      input.value.trim() ? '' : 'Informe o nome ou código do pedido.'
+      input.value.trim() ? '' : 'Informe o código do pedido.'
     );
     if (!informationForm.checkValidity()) {
       navigate('aacd-pedido-1');
@@ -95,7 +99,7 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
     if (!hasMaterials || !hasNozzles) {
       navigate('aacd-pedido-2');
       specificationsForm.querySelector('.form-error').textContent =
-        'Selecione pelo menos um material e um bico disponível.';
+        'Selecione pelo menos um material e um diâmetro de bico aceito para o pedido.';
       return false;
     }
     return true;
@@ -110,7 +114,7 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
       /* campo inválido */
     }
     input.setCustomValidity(
-      valid ? '' : 'Informe um link HTTP ou HTTPS válido para o arquivo.'
+      valid ? '' : 'Informe um link válido para o arquivo, começando com http:// ou https://.'
     );
     if (!fileForm.checkValidity()) {
       navigate('aacd-pedido-3');
@@ -128,9 +132,11 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
     matches = records;
     renderMatches(matches);
     renderDemandSummary(draft);
+    feedback.setAttribute('role', 'status');
     feedback.textContent = matches.length
       ? ''
-      : 'Nenhuma impressora homologada atende aos requisitos. Revise materiais, bicos e dimensões.';
+      : 'Nenhum parceiro compatível encontrado. Revise os materiais, os diâmetros de bico e as dimensões do pedido.';
+    reviewRequirements.hidden = matches.length > 0;
     navigate('aacd-conectar');
   }
   async function resumeRequest(button) {
@@ -196,17 +202,36 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
   async function submitOrderFile(event) {
     event.preventDefault();
     if (activeSection !== 'aacd-pedido-3') return;
+    if (recommendationRequest || submission) return;
     if (!validateOrderFile()) return;
     if (!validateOrderInformation()) return;
     if (!validateOrderSpecifications()) return;
     const button = fileForm.querySelector('[type=submit]');
+    const operation = {};
+    const actor = sessionKey();
+    recommendationRequest = operation;
     button.disabled = true;
+    button.textContent = 'Buscando parceiros…';
+    fileForm.setAttribute('aria-busy', 'true');
+    fileForm.querySelector('.form-error').textContent = '';
+    recommendationFeedback.textContent = 'Buscando parceiros compatíveis. Aguarde.';
     try {
       await showRecommendations(readDraft());
     } catch (error) {
-      fileForm.querySelector('.form-error').textContent = error.message;
+      if (actor === sessionKey() && recommendationRequest === operation) {
+        fileForm.querySelector('.form-error').textContent =
+          error.status && error.status < 500
+            ? error.message
+            : 'Não foi possível buscar parceiros compatíveis. Verifique sua conexão e tente novamente.';
+      }
     } finally {
-      button.disabled = false;
+      if (recommendationRequest === operation) {
+        recommendationRequest = null;
+        button.disabled = false;
+        button.textContent = 'Escolher parceiro';
+        fileForm.removeAttribute('aria-busy');
+        recommendationFeedback.textContent = '';
+      }
     }
   }
 
@@ -221,6 +246,7 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
       : 'Ocultar Ficha Técnica';
   }
   async function connectOrder(button) {
+    if (activeSection !== 'aacd-conectar' || submission) return;
     if (!validateOrderInformation()) return
     if (!validateOrderSpecifications()) return
     if (!validateOrderFile()) return
@@ -230,7 +256,14 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
     );
     if (!match) return;
     const actor = sessionKey();
-    button.disabled = true;
+    const operation = {};
+    submission = operation;
+    const sendButtons = [...matchList.querySelectorAll('[data-connect-order]')];
+    sendButtons.forEach((sendButton) => { sendButton.disabled = true; });
+    button.querySelector('[data-send-label]').textContent = 'Enviando pedido…';
+    matchList.setAttribute('aria-busy', 'true');
+    feedback.setAttribute('role', 'status');
+    feedback.textContent = 'Enviando pedido ao parceiro. Aguarde.';
     try {
       await data.createOrder({
         ...draft,
@@ -241,24 +274,42 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
           nozzle: match.nozzle
         }
       });
-      if (actor !== sessionKey()) return;
+      if (actor !== sessionKey() || submission !== operation) return;
       resetOrderFilters();
-      await onOrdersChanged();
       feedback.textContent = '';
+      reviewRequirements.hidden = true;
       matches = [];
       renderMatches(matches);
-      document.getElementById('aacd-orders-feedback').textContent =
-        `${draft.code} conectado a ${match.name}. Pedido salvo e disponível para o parceiro.`;
       navigate('aacd-pedidos');
+      const refreshed = await onOrdersChanged();
+      if (actor !== sessionKey() || submission !== operation) return;
+      document.getElementById('aacd-orders-feedback').textContent =
+        `Pedido ${draft.code} enviado ao parceiro ${match.name}. Aguardando aceite. Acompanhe em Pedidos.` +
+        (refreshed === false
+          ? ' Não foi possível atualizar a lista. Recarregue a página para acompanhar o pedido.'
+          : '');
     } catch (error) {
-      feedback.textContent = error.message;
+      if (actor === sessionKey() && submission === operation) {
+        feedback.setAttribute('role', 'alert');
+        feedback.textContent = error.status && error.status < 500
+          ? error.message
+          : error.status
+            ? 'Não foi possível enviar o pedido. Tente novamente em instantes.'
+            : 'Não foi possível confirmar o envio do pedido. Verifique sua conexão e consulte Pedidos antes de tentar novamente.';
+      }
     } finally {
-      button.disabled = false;
+      if (submission === operation) {
+        submission = null;
+        sendButtons.forEach((sendButton) => { sendButton.disabled = false; });
+        button.querySelector('[data-send-label]').textContent = 'Enviar pedido ao parceiro';
+        matchList.removeAttribute('aria-busy');
+      }
     }
   }
   function onDraftInput(event) {
     revision++;
     matches = [];
+    reviewRequirements.hidden = true;
     if ('setCustomValidity' in event.target) event.target.setCustomValidity('');
     const error = event.currentTarget.querySelector('.form-error');
     if (error) error.textContent = '';
@@ -284,8 +335,17 @@ export function initAacdRequests({ onOrdersChanged, resetOrderFilters }) {
   });
   function clear() {
     revision++;
+    recommendationRequest = null;
+    submission = null;
     matches = [];
     renderMatches(matches);
+    matchList.removeAttribute('aria-busy');
+    reviewRequirements.hidden = true;
+    recommendationFeedback.textContent = '';
+    fileForm.removeAttribute('aria-busy');
+    const fileButton = fileForm.querySelector('[type=submit]');
+    fileButton.disabled = false;
+    fileButton.textContent = 'Escolher parceiro';
     forms.forEach((form) => {
       form.reset();
       form

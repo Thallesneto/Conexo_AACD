@@ -59,9 +59,11 @@ export async function initAacd() {
         partners.refresh(),
         requests.refreshOpenRequests()
       ]);
+      return true;
     } catch (error) {
       document.getElementById('aacd-orders-feedback').textContent =
         error.message;
+      return false;
     }
   }
   document.addEventListener('conexo:data-changed', refresh);
