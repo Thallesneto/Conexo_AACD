@@ -305,3 +305,60 @@ test('um email não pode ser cadastrado simultaneamente nas duas tabelas', async
   assert.deepEqual(responses.map((r) => r.status).sort(), [201, 409]);
   assert.equal((await createRepository(pool).byEmail(email)).length, 1);
 });
+
+
+test('impressoras persistem no Mongo, respeitam proprietário e soft delete', async () => {
+  const client = new Client();
+  await client.login(partner.email);
+  const created = await client.request('POST', '/api/impressoras', printerBody);
+  assert.equal(created.status, 201);
+  const id = created.value._id;
+  assert.deepEqual(created.value.necessidade_por_material, {
+    PLA: false,
+    PETG: true
+  });
+  const second = new Client();
+  const other = await second.request(
+    'POST',
+    '/api/auth/cadastros/parceiros',
+    partnerBody('other-' + suffix + '@example.org')
+  );
+  assert.equal(other.status, 201);
+  await second.login(other.value.user.email);
+  assert.equal(
+    (await second.request('GET', '/api/impressoras/' + id)).status,
+    404
+  );
+  assert.equal(
+    (await second.request('DELETE', '/api/impressoras/' + id)).status,
+    404
+  );
+  assert.equal(
+    (
+      await client.request('PATCH', '/api/impressoras/' + id, {
+        ...printerBody,
+        materiais_disponiveis: ['ABS']
+      })
+    ).status,
+    422
+  );
+  assert.equal(
+    (await client.request('PATCH', '/api/impressoras/' + id, printerBody))
+      .status,
+    200
+  );
+  assert.equal(
+    (await client.request('DELETE', '/api/impressoras/' + id)).status,
+    200
+  );
+  const raw = await collection.findOne({
+    modelo: printerBody.modelo,
+    id_parceiro: Number(partner.id)
+  });
+  assert.ok(raw);
+  assert.equal(raw.ativa, false);
+  assert.equal(
+    (await client.request('GET', '/api/impressoras/' + id)).status,
+    404
+  );
+});
