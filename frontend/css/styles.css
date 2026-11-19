@@ -4147,3 +4147,91 @@ footer p {
   background: #fff1f2;
   color: #be123c;
 }
+
+/* Ajusta a leitura sem alterar o título ou as margens do cadastro. */
+#termos-uso form {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 261px);
+  min-height: 320px;
+}
+
+#termos-uso .form-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 20px 24px;
+}
+
+#termos-uso .terms-scroll {
+  flex: 1;
+  min-height: 80px;
+  height: auto;
+  padding-top: 12px;
+}
+
+#termos-uso .terms-title,
+#termos-uso .terms-intro,
+#termos-uso .progress,
+#termos-uso .terms-status,
+#termos-uso .form-error {
+  flex-shrink: 0;
+}
+
+#termos-uso .form-actions {
+  flex-shrink: 0;
+}
+
+@media (max-width: 900px) {
+  #termos-uso form {
+    height: calc(100dvh - 211px);
+  }
+}
+
+@media (max-width: 600px) {
+  #termos-uso form {
+    height: calc(100dvh - 185px);
+    min-height: 440px;
+  }
+}
+
+@media (max-height: 540px) {
+  #termos-uso form {
+    min-height: 400px;
+  }
+
+  #termos-uso .form-card {
+    padding-block: 12px;
+  }
+
+  #termos-uso .form-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    padding-block: 8px;
+    background: var(--mint);
+  }
+}
+
+/* Destaca a busca antes da confirmação do pino. */
+.location-box [data-geocode] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 12px;
+  padding: 12px 24px;
+  border: 2px solid var(--action);
+  border-radius: 12px;
+  background: var(--action);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.location-box [data-geocode]:not(:disabled):hover {
+  background: var(--green);
+  border-color: var(--green);
+}
