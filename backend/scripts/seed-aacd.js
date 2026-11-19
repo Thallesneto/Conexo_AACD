@@ -3,8 +3,10 @@ import { loadConfig } from '../src/config.js';
 import { createRepository } from '../src/repository.js';
 import { createAuthService } from '../src/auth-service.js';
 import { createGeoService } from '../src/geo.js';
+
 const config = loadConfig(),
   pool = createPool(config.mysql);
+
 try {
   await createAuthService(
     createRepository(pool),
@@ -21,6 +23,7 @@ try {
     },
     { seed: true }
   );
+
   console.log(
     'Primeira conta AACD criada e homologada; senha armazenada em bcrypt.'
   );
@@ -29,6 +32,7 @@ try {
     'Seed não concluído:',
     error.status ? error.message : 'confira as variáveis e a conexão ao MySQL.'
   );
+
   process.exitCode = 1;
 } finally {
   await pool.end();
