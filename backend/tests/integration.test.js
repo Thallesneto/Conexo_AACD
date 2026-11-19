@@ -432,3 +432,62 @@ test('edição própria não promove perfil, não troca unidade e logout invalid
   assert.equal((await client.request('POST', '/api/auth/logout')).status, 204);
   assert.equal((await client.request('GET', '/api/auth/me')).status, 401);
 });
+
+
+test('segredos e arquivos do backend não são publicados como estáticos', async () => {
+  const client = new Client();
+  for (const path of [
+    '/backend/.env',
+    '/.env',
+    '/backend/package.json',
+    '/docs/database/mysql-proposta.sql',
+    '/package.json',
+    '/backend/src/material-catalog.js',
+    '/material-catalog.js'
+  ])
+    assert.equal((await client.request('GET', path)).status, 404);
+  for (const path of [
+    '/runtime-config.js',
+    '/mock-data.js',
+    '/memory-source.js',
+    '/js/client-api/secret.js',
+    '/js/ui/secret.js',
+    '/js/ui/profiles.js'
+  ]) {
+    assert.equal((await client.request('GET', path)).status, 404);
+  }
+  const module = await client.request('GET', '/js/client-api/orders.js');
+  assert.equal(module.status, 200);
+  assert.ok(!module.value.includes(config.secret));
+  for (const file of [
+    '/',
+    '/index.html',
+    '/css/styles.css',
+    '/js/app.js',
+    '/assets/logo.png',
+    '/assets/jakarta.woff2'
+  ]) {
+    assert.equal((await client.request('GET', file)).status, 200, file);
+  }
+  const index = await client.request('GET', '/index.html');
+  for (const url of [
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css',
+    'https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js',
+    'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css',
+    'https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js'
+  ])
+    assert.ok(index.value.includes(url), url);
+  for (const file of [
+    'aacd-orders.js',
+    'aacd-partners.js',
+    'aacd-requests.js',
+    'aacd-matches.js',
+    'aacd-profile.js',
+    'partner-profile.js',
+    'partner-printers.js',
+    'partner-orders.js',
+    'partner-registration.js'
+  ]) {
+    assert.equal((await client.request('GET', '/js/ui/' + file)).status, 200);
+  }
+});
