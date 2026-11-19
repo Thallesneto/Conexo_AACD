@@ -4235,3 +4235,30 @@ footer p {
   background: var(--green);
   border-color: var(--green);
 }
+
+/* Distância sem círculo e sem largura fixa. */
+.match-score > strong {
+  border: 0;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  display: block;
+}
+
+/* O círculo também está desenhado nesta imagem. */
+.match-score > strong > img {
+  display: none;
+}
+
+/* A unidade identifica a localização, não a urgência. */
+.aacd-demand-summary h2 small {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.aacd-demand-summary h2 small > span {
+  background: transparent;
+  color: inherit;
+  margin-left: 0;
+  padding: 0;
+}
