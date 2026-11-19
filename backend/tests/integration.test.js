@@ -491,3 +491,41 @@ test('segredos e arquivos do backend não são publicados como estáticos', asyn
     assert.equal((await client.request('GET', '/js/ui/' + file)).status, 200);
   }
 });
+
+
+test('sessão persiste no MySQL após reconstruir a aplicação', async () => {
+  const client = new Client();
+  await client.login(root.email);
+  await new Promise((resolve) => server.close(resolve));
+  await app.locals.sessionStore.close();
+  app = createApp({
+    pool,
+    config,
+    geo: createGeoService(),
+    printers: createPrinterService(collection)
+  });
+  await app.locals.sessionStore.onReady();
+  server = await new Promise((resolve) => {
+    const s = app.listen(0, '127.0.0.1', () => resolve(s));
+  });
+  base = 'http://127.0.0.1:' + server.address().port;
+  assert.equal((await client.request('GET', '/api/auth/me')).status, 200);
+});
+
+test('unicidade entre tabelas respeita também a equivalência de acentos do MySQL', async () => {
+  const a = new Client(),
+    b = new Client();
+  const responses = await Promise.all([
+    a.request(
+      'POST',
+      '/api/auth/cadastros/aacd',
+      aacdBody('accent-e-' + suffix + '@example.org')
+    ),
+    b.request(
+      'POST',
+      '/api/auth/cadastros/parceiros',
+      partnerBody('accent-é-' + suffix + '@example.org')
+    )
+  ]);
+  assert.deepEqual(responses.map((r) => r.status).sort(), [201, 409]);
+});
