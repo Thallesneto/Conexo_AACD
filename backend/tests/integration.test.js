@@ -69,3 +69,64 @@ class Client {
     return r.value.user;
   }
 }
+
+const aacdBody = (email) => ({
+  email,
+  ...credentials,
+  phone: '11988887777',
+  unit: 'Mooca',
+  holder: 'Conta teste'
+});
+const partnerBody = (email) => ({
+  email,
+  ...credentials,
+  phone: '11977776666',
+  institution: 'Lab de teste',
+  responsible: 'Responsável teste',
+  street: 'Avenida Paulista',
+  number: '',
+  city: 'São Paulo',
+  state: 'SP',
+  latitude: -23.55,
+  longitude: -46.63,
+  locationConfirmed: true,
+  termsAccepted: true
+});
+const printerBody = {
+  modelo: 'FDM de teste',
+  capacidade: { x: 200, y: 200, z: 200 },
+  bicos: [0.4],
+  materiais_compativeis: ['PLA', 'PETG'],
+  materiais_disponiveis: ['PLA']
+};
+before(async () => {
+  await mongo.connect();
+  collection = mongo.db(config.mongoDatabase).collection('impressoras');
+  const auth = createAuthService(
+    createRepository(pool),
+    config,
+    createGeoService()
+  );
+  root = await auth.register(
+    'aacd',
+    aacdBody('root-' + suffix + '@example.org'),
+    { seed: true }
+  );
+  app = createApp({
+    pool,
+    config,
+    geo: createGeoService(),
+    printers: createPrinterService(collection)
+  });
+  await app.locals.sessionStore.onReady();
+  server = await new Promise((resolve) => {
+    const s = app.listen(0, '127.0.0.1', () => resolve(s));
+  });
+  base = 'http://127.0.0.1:' + server.address().port;
+});
+after(async () => {
+  if (server) await new Promise((resolve) => server.close(resolve));
+  if (app) await app.locals.sessionStore.close();
+  await mongo.close();
+  await pool.end();
+});
