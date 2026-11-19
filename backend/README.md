@@ -441,20 +441,3 @@ A fixture é salva no diretório temporário do sistema. `CONEXO_ORDERS_FIXTURE`
 O teste `../tests/backend_browser.py` também cobre cadastro e homologação. Ele exige `SEED_AACD_EMAIL` e `SEED_AACD_PASSWORD` no ambiente do Python, com os dados de uma conta AACD de teste. Variáveis de `.env.test` não são carregadas automaticamente por scripts Python.
 
 Há verificações isoladas de interface, mapa e confirmação do pino em `../tests/`. Os scripts `browser_smoke.py` e `map_visibility.py` procuram o Chromium no PATH. Os testes de navegador são executados separadamente de `npm test`.
-
-## Diagnóstico rápido
-
-| Sintoma | O que conferir |
-| --- | --- |
-| Servidor não inicia | Serviços MySQL/MongoDB, credenciais, permissões, porta e `SESSION_SECRET` |
-| Email ou senha inválidos | Conta existente no banco e credenciais usadas no seed; editar `.env` não redefine senha |
-| Busca de endereço indisponível | `NOMINATIM_USER_AGENT`, conexão com o provedor e mensagem retornada pela API |
-| Pedido não pode ser recomendado | Coordenadas da unidade, homologação dos parceiros, impressoras ativas e requisitos |
-| Conflito ao encaminhar ou mudar situação | Pedido ativo existente, solicitação encerrada ou alteração concorrente do estado |
-| Falha em teste com base reutilizada | Cenários anteriores podem ter alterado registros; prepare novos bancos descartáveis |
-
-## Situação atual
-
-O backend está destinado ao desenvolvimento e à validação local. A recuperação de senha por email aguarda a escolha e a configuração de um serviço de envio. A interface informa essa indisponibilidade.
-
-A aplicação precisa ser validada no ambiente da equipe antes de uma eventual publicação. Os arquivos de schemas, configurações e testes descrevem a versão atual da implementação.
