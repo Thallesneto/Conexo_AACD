@@ -254,3 +254,54 @@ test('homologação AACD exige conta já homologada e passa a valer na sessão e
     201
   );
 });
+
+test('parceiro confirma coordenada no Brasil, número opcional e fica não homologado', async () => {
+  const client = new Client();
+  const invalid = {
+    ...partnerBody('invalid-' + suffix + '@example.org'),
+    latitude: -17,
+    longitude: -63
+  };
+  assert.equal(insideBrazil(-17, -63), false);
+  assert.equal(
+    (await client.request('POST', '/api/auth/cadastros/parceiros', invalid))
+      .status,
+    422
+  );
+  assert.equal(
+    (
+      await client.request('POST', '/api/auth/cadastros/parceiros', {
+        ...partnerBody('unconfirmed-' + suffix + '@example.org'),
+        locationConfirmed: false
+      })
+    ).status,
+    422
+  );
+  const result = await client.request(
+    'POST',
+    '/api/auth/cadastros/parceiros',
+    partnerBody('partner-' + suffix + '@example.org')
+  );
+  assert.equal(result.status, 201);
+  partner = result.value.user;
+  assert.equal(partner.homologado, false);
+  assert.equal(partner.numero, '');
+  await client.login(partner.email);
+  assert.equal(
+    (await client.request('POST', '/api/aacd/' + root.id + '/homologacao'))
+      .status,
+    403
+  );
+});
+
+test('um email não pode ser cadastrado simultaneamente nas duas tabelas', async () => {
+  const email = 'race-' + suffix + '@example.org';
+  const a = new Client(),
+    b = new Client();
+  const responses = await Promise.all([
+    a.request('POST', '/api/auth/cadastros/aacd', aacdBody(email)),
+    b.request('POST', '/api/auth/cadastros/parceiros', partnerBody(email))
+  ]);
+  assert.deepEqual(responses.map((r) => r.status).sort(), [201, 409]);
+  assert.equal((await createRepository(pool).byEmail(email)).length, 1);
+});
