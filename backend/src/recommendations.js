@@ -1,4 +1,3 @@
-
 import { check } from './errors.js';
 import { needsMaterialSupply } from './material-catalog.js';
 import { insideBrazil } from './geo.js';
@@ -122,11 +121,12 @@ export function createRecommendationService({
           name: partner.nome_instituicao,
           location: partner.cidade + ' / ' + partner.uf,
           printerName: printer.modelo,
-          distanceKm: Number(distance.toFixed(2)),
+          distanceKm: distance,
           ...option
         });
     }
-    return items.sort(
+    // Ordena pela distância completa, sem criar empates pelo arredondamento.
+    items.sort(
       (a, b) =>
         a.distanceKm - b.distanceKm ||
         a.partnerId.localeCompare(b.partnerId) ||
@@ -134,6 +134,12 @@ export function createRecommendationService({
         a.material.localeCompare(b.material) ||
         a.nozzle - b.nozzle
     );
+
+    // Arredonda apenas a distância devolvida na resposta.
+    return items.map((item) => ({
+      ...item,
+      distanceKm: Number(item.distanceKm.toFixed(2))
+    }));
   }
   return { matches, preview };
 }
