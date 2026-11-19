@@ -130,3 +130,75 @@ after(async () => {
   await mongo.close();
   await pool.end();
 });
+
+test('cadastro AACD grava bcrypt e ignora aprovação do cliente', async () => {
+  const client = new Client();
+  const forged = await client.request('POST', '/api/auth/cadastros/aacd', {
+    ...aacdBody('forged-' + suffix + '@example.org'),
+    homologado: true
+  });
+  assert.equal(forged.status, 422);
+  const response = await client.request(
+    'POST',
+    '/api/auth/cadastros/aacd',
+    aacdBody('pending-' + suffix + '@example.org')
+  );
+  assert.equal(response.status, 201);
+  pending = response.value.user;
+  assert.equal(pending.homologado, false);
+  assert.ok(!('senha_hash' in pending));
+  const [[row]] = await pool.execute('SELECT senha_hash FROM aacd WHERE id=?', [
+    pending.id
+  ]);
+  assert.match(row.senha_hash, /^\$2[aby]\$/);
+  assert.notEqual(row.senha_hash, credentials.password);
+  assert.ok(await bcrypt.compare(credentials.password, row.senha_hash));
+});
+
+test('perfil vem do banco; senha incorreta e CSRF inválido são rejeitados', async () => {
+  const client = new Client();
+  assert.equal(
+    (
+      await client.request('POST', '/api/auth/login', {
+        email: root.email,
+        password: 'errada'
+      })
+    ).status,
+    401
+  );
+  assert.equal(
+    (
+      await client.request(
+        'POST',
+        '/api/auth/login',
+        { email: root.email, ...credentials },
+        { csrf: false }
+      )
+    ).status,
+    403
+  );
+  await client.request('GET', '/api/auth/csrf');
+  assert.equal(
+    (
+      await client.request(
+        'POST',
+        '/api/auth/login',
+        { email: root.email, ...credentials },
+        { header: 'é'.repeat(64) }
+      )
+    ).status,
+    403
+  );
+  const user = await client.login(root.email);
+  assert.equal(user.perfil, 'aacd');
+  assert.equal(user.homologado, true);
+  const response = await client.request('GET', '/api/auth/csrf');
+  assert.ok(client.cookie.includes('conexo.sid='));
+  const loginClient = new Client();
+  const logged = await loginClient.request('POST', '/api/auth/login', {
+    email: root.email,
+    ...credentials
+  });
+  assert.match(logged.headers.get('set-cookie'), /HttpOnly/i);
+  assert.match(logged.headers.get('set-cookie'), /SameSite=Lax/i);
+});
