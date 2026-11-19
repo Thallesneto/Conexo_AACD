@@ -362,3 +362,73 @@ test('impressoras persistem no Mongo, respeitam proprietário e soft delete', as
     404
   );
 });
+
+
+test('código possui material e ID numérico persistente; cliente não escolhe o ID', async () => {
+  const client = new Client();
+  await client.login(root.email);
+  const a = await client.request('POST', '/api/solicitacoes/codigos', {
+    material: 'PETG',
+    id: 0
+  });
+  const b = await client.request('POST', '/api/solicitacoes/codigos', {
+    material: 'PETG'
+  });
+  assert.equal(a.status, 201);
+  assert.match(a.value.code, /^PETG-[0-9]+$/);
+  assert.ok(BigInt(b.value.id) > BigInt(a.value.id));
+  const [[row]] = await pool.execute(
+    'SELECT material,id_aacd FROM codigo_solicitacao WHERE id=?',
+    [a.value.id]
+  );
+  assert.equal(row.material, 'PETG');
+  assert.equal(String(row.id_aacd), root.id);
+  assert.equal(
+    (
+      await client.request('POST', '/api/solicitacoes/codigos', {
+        material: 'Resina'
+      })
+    ).status,
+    422
+  );
+});
+test('edição própria não promove perfil, não troca unidade e logout invalida acesso', async () => {
+  const client = new Client();
+  await client.login(root.email);
+  assert.equal(
+    (
+      await client.request('PATCH', '/api/me', {
+        email: root.email,
+        phone: root.telefone,
+        holder: root.nome,
+        unit: 'Ibirapuera'
+      })
+    ).status,
+    409
+  );
+  assert.equal(
+    (
+      await client.request('PATCH', '/api/me', {
+        email: root.email,
+        phone: root.telefone,
+        holder: root.nome,
+        unit: root.unidade,
+        homologado: true
+      })
+    ).status,
+    422
+  );
+  assert.equal(
+    (
+      await client.request('PATCH', '/api/me', {
+        email: root.email,
+        phone: root.telefone,
+        holder: 'Nome atualizado',
+        unit: root.unidade
+      })
+    ).status,
+    200
+  );
+  assert.equal((await client.request('POST', '/api/auth/logout')).status, 204);
+  assert.equal((await client.request('GET', '/api/auth/me')).status, 401);
+});
