@@ -73,7 +73,7 @@ with sync_playwright() as p:
     )
     a.locator("#aacd-order-step-3 button[type=submit]").click()
     expect(a.locator("#aacd-order-step-3 .form-error")).to_have_text(
-        "Falha de recomendações para teste"
+        "Não foi possível buscar parceiros compatíveis. Verifique sua conexão e tente novamente."
     )
     a.unroute("**/api/recomendacoes")
     a.locator("#aacd-order-step-3 button[type=submit]").click()
@@ -91,7 +91,7 @@ with sync_playwright() as p:
     )
     card.locator("[data-connect-order]").click()
     expect(a.locator("#aacd-pedidos")).to_be_visible()
-    expect(a.locator("#aacd-orders-feedback")).to_contain_text("salvo")
+    expect(a.locator("#aacd-orders-feedback")).to_contain_text("Aguardando aceite")
     a.reload()
     expect(a.locator("#aacd-order-list")).to_contain_text(f["code"])
     partner = page_for(f["partner"])

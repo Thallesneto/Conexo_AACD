@@ -11,7 +11,7 @@ export const ORDER_STATUS_UI = Object.freeze({
     label: 'Aguardando aceite',
     filterLabel: 'Aguardando aceite',
     className: '',
-    partnerLabel: 'Não aceito',
+    partnerLabel: 'Aguardando aceite',
     partnerClass: 'waiting'
   }),
   [ORDER_STATUS.IN_PRODUCTION]: Object.freeze({

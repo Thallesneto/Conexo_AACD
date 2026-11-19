@@ -13,11 +13,11 @@ export async function getOrder(id) {
 }
 
 export async function createOrder(record) {
-  const created = await api('/pedidos', {
+  // O POST confirma o envio. Uma leitura posterior não deve transformá-lo em falha.
+  return api('/pedidos', {
     method: 'POST',
     body: { request: requestBody(record), selection: record.selection }
   });
-  return getOrder(created.id);
 }
 
 export async function listMatches(draft) {
