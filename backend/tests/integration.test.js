@@ -202,3 +202,55 @@ test('perfil vem do banco; senha incorreta e CSRF inválido são rejeitados', as
   assert.match(logged.headers.get('set-cookie'), /HttpOnly/i);
   assert.match(logged.headers.get('set-cookie'), /SameSite=Lax/i);
 });
+
+test('homologação AACD exige conta já homologada e passa a valer na sessão existente', async () => {
+  const waiting = new Client();
+  await waiting.login(pending.email);
+  assert.equal(
+    (await waiting.request('GET', '/api/aacd/pendentes')).status,
+    403
+  );
+  assert.equal(
+    (
+      await waiting.request('PATCH', '/api/me', {
+        email: pending.email,
+        phone: pending.telefone,
+        holder: pending.nome,
+        unit: pending.unidade
+      })
+    ).status,
+    403
+  );
+  assert.equal(
+    (
+      await waiting.request('POST', '/api/solicitacoes/codigos', {
+        material: 'PLA'
+      })
+    ).status,
+    403
+  );
+  const approved = new Client();
+  await approved.login(root.email);
+  assert.ok(
+    (await approved.request('GET', '/api/aacd/pendentes')).value.items.some(
+      (user) => user.id === pending.id
+    )
+  );
+  assert.equal(
+    (await approved.request('POST', '/api/aacd/' + pending.id + '/homologacao'))
+      .status,
+    200
+  );
+  assert.equal(
+    (await waiting.request('GET', '/api/auth/me')).value.user.homologado,
+    true
+  );
+  assert.equal(
+    (
+      await waiting.request('POST', '/api/solicitacoes/codigos', {
+        material: 'PLA'
+      })
+    ).status,
+    201
+  );
+});
