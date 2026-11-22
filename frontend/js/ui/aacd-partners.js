@@ -26,6 +26,15 @@ export function initAacdPartners() {
         const card = instance('network-template');
         card.dataset.partnerId = partner.id;
         text(card, 'h2', partner.name);
+        const contact = card.querySelector('[data-network-contact]');
+        const emailLink = card.querySelector('[data-network-email]');
+
+        contact.hidden = !partner.email;
+
+        if (partner.email) {
+          emailLink.textContent = partner.email;
+          emailLink.href = 'mailto:' + partner.email;
+        }
         tail(card.querySelector('.network-card-header p'), partner.location);
         card.querySelector('.round-icon img').src = partner.icon;
         const status = card.querySelector('.aacd-status');

@@ -4360,3 +4360,38 @@ footer p {
     font-size: 22px;
   }
 }
+
+.network-contact {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid #dceee5;
+}
+
+.network-contact > span {
+  display: block;
+  margin-bottom: 6px;
+  color: #52665d;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.network-contact > a {
+  display: inline-block;
+  max-width: 100%;
+  color: #086651;
+  font-size: 15px;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  overflow-wrap: anywhere;
+}
+
+.network-contact > a:hover {
+  color: #034432;
+}
+
+.network-contact > a:focus-visible {
+  outline: 3px solid #34b993;
+  outline-offset: 4px;
+  border-radius: 4px;
+}

@@ -6,6 +6,7 @@ export async function listPartners() {
   return (await api('/parceiros?homologado=true')).items.map((record) => ({
     id: record.id,
     name: record.nome_instituicao,
+    email: record.email,
     location: record.cidade + ' / ' + record.uf,
     statusLabel: 'Homologado',
     statusClass: 'aacd-status finished',
