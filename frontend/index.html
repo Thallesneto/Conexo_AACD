@@ -1339,7 +1339,7 @@
                   id="cadastro-aacd-email"
                   name="email"
                   type="email"
-                  placeholder="contato@maua.br"
+                  placeholder="contato@aacd.org.br"
                   required=""
                   autocomplete="email"
                 />
@@ -2254,25 +2254,35 @@
             >
           </div>
           <!-- Resumo da fila: parceiros homologados e solicitações pendentes -->
-          <div class="review-queue">
-            <span>Fila de Análise:</span>
-            <div>
+          <div
+            class="review-queue"
+            role="group"
+            aria-label="Resumo dos parceiros"
+          >
+            <span>
               <img src="assets/aacd-b098e.svg" alt="" />
-              <span> <b data-homologated-count>0</b> Homologados</span>
-              <i> </i>
+              <b data-homologated-count>0</b>
+              Homologados
+            </span>
+
+            <span>
               <img src="assets/aacd-5665e.svg" alt="" />
-              <span> <b id="aacd-review-count">0</b> Na fila</span>
-            </div>
+              <b id="aacd-review-count">0</b>
+              Na fila
+            </span>
           </div>
+          <!-- Fila de parceiros para avaliação: preenchida dinamicamente pelo JavaScript -->
+          <h2 id="aacd-partners-pending-title">
+            Parceiros aguardando homologação
+          </h2>
+          <div id="aacd-review-list"> </div>
+          <p class="feedback" id="aacd-review-feedback" role="status"> </p>
           <!-- Homologação de contas da equipe AACD -->
           <section id="aacd-users-panel" hidden>
             <h2>Contas AACD aguardando homologação</h2>
             <div id="aacd-users-list"></div>
             <p id="aacd-users-feedback" class="feedback" role="status"></p>
           </section>
-          <!-- Fila de parceiros para avaliação: preenchida dinamicamente pelo JavaScript -->
-          <div id="aacd-review-list"> </div>
-          <p class="feedback" id="aacd-review-feedback" role="status"> </p>
         </div>
       </section>
       <!-- FIM DA TELA: AACD — homologação de parceiros e contas AACD (#aacd-homologacao) -->
@@ -2484,7 +2494,6 @@
                   <label class="choice">
                     <input
                       type="checkbox"
-                      checked
                       name="nozzles"
                       value="0.2"
                     />Bico 0,2 mm</label
@@ -2492,7 +2501,6 @@
                   <label class="choice">
                     <input
                       type="checkbox"
-                      checked
                       name="nozzles"
                       value="0.4"
                     />Bico 0,4 mm</label
@@ -2500,7 +2508,6 @@
                   <label class="choice">
                     <input
                       type="checkbox"
-                      checked
                       name="nozzles"
                       value="0.6"
                     />Bico 0,6 mm</label
@@ -2508,7 +2515,6 @@
                   <label class="choice">
                     <input
                       type="checkbox"
-                      checked
                       name="nozzles"
                       value="0.8"
                     />Bico 0,8 mm</label

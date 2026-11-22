@@ -2864,29 +2864,28 @@ footer p {
 }
 .review-queue {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   align-items: center;
-  gap: 24px;
-  justify-content: space-between;
-  border-radius: 24px;
-  background: white;
-  box-shadow: 0 2px 3px #064e3b66;
-  padding: 16px 24px;
+  gap: 12px;
   margin-bottom: 48px;
   font-size: 14px;
 }
-.review-queue > div {
-  display: flex;
+
+.review-queue > span {
+  display: inline-flex;
   align-items: center;
   gap: 8px;
-  flex: 1;
-  justify-content: center;
-  font-size: 12px;
+  padding: 12px 18px;
+  background: white;
+  border: 1px solid #d1fae5;
+  border-radius: 16px;
 }
-.review-queue i {
-  height: 16px;
-  width: 1px;
-  background: #bfc9c2;
-  margin: 0 16px;
+
+.review-queue img {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
 }
 .aacd-review {
   background: white;
@@ -3767,18 +3766,7 @@ footer p {
     margin-top: 0;
   }
   .review-queue {
-    padding: 16px;
-    flex-wrap: wrap;
     margin-bottom: 28px;
-    gap: 12px;
-  }
-  .review-queue > div {
-    justify-content: flex-start;
-    flex: 0 0 100%;
-    gap: 6px;
-  }
-  .review-queue i {
-    margin: 0 6px;
   }
   .aacd-review {
     padding: 20px;
@@ -4261,4 +4249,114 @@ footer p {
   color: inherit;
   margin-left: 0;
   padding: 0;
+}
+
+/* Contas AACD aguardando homologação */
+#aacd-users-list {
+  display: grid;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+#aacd-users-list > article {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 24px;
+
+  padding: 28px;
+  background: #fff;
+  border: 1px solid #d8eee5;
+  border-left: 5px solid #0d6854;
+  border-radius: 24px;
+  box-shadow: 0 6px 20px rgb(6 78 59 / 8%);
+}
+
+#aacd-users-list h3 {
+  grid-column: 1;
+  margin: 0;
+
+  color: #064e3b;
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+#aacd-users-list p {
+  grid-column: 1;
+  margin: 0;
+
+  color: #52665d;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+
+#aacd-users-list button {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  justify-self: end;
+  align-self: center;
+
+  margin: 0;
+  padding: 12px 22px;
+  min-height: 48px;
+  border-radius: 14px;
+  font-size: 14px;
+  white-space: nowrap;
+  box-shadow: none;
+}
+
+#aacd-users-list button:focus-visible {
+  outline: 3px solid #34b993;
+  outline-offset: 4px;
+}
+
+@media (max-width: 600px) {
+  #aacd-users-list > article {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    padding: 22px;
+  }
+
+  #aacd-users-list button {
+    grid-column: 1;
+    grid-row: auto;
+    justify-self: stretch;
+    width: 100%;
+    margin-top: 8px;
+    white-space: normal;
+  }
+}
+
+/* Separação entre contas AACD e parceiros */
+#aacd-users-panel {
+  padding-bottom: 32px;
+  margin-bottom: 32px;
+  border-bottom: 1px solid #b8d8cb;
+}
+
+/* Títulos dos dois grupos */
+#aacd-users-panel > h2,
+#aacd-partners-pending-title {
+  color: #064e3b;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.3;
+  letter-spacing: -0.5px;
+}
+
+#aacd-users-panel > h2 {
+  margin: 0;
+}
+
+#aacd-partners-pending-title {
+  margin: 0 0 24px;
+}
+
+@media (max-width: 600px) {
+  #aacd-users-panel > h2,
+  #aacd-partners-pending-title {
+    font-size: 22px;
+  }
 }
